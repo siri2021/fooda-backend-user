@@ -1,0 +1,6 @@
+{
+  "name": "Eureka Address Backend API",
+  "description": "Address module.",
+  "website": "https://github.com/yilmazchef/fooda-backend-address",
+  "success_url": "/"
+}

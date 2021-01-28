@@ -1,0 +1,8 @@
+{
+  "properties": [
+    {
+      "name": "twilio.bridge.url",
+      "type": "java.lang.String",
+      "description": "Bridge connection information for Twilio SMS authorization and validation services."
+  }
+] }
