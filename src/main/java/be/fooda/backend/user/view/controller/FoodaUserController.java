@@ -15,7 +15,7 @@ import java.util.Optional;
 
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @RestController
-@RequestMapping("api/v1/user")
+@RequestMapping("/")
 public class FoodaUserController {
 
     private final FoodaTwilioBridge twilioBridge;
