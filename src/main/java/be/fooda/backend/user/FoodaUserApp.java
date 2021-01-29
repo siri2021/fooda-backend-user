@@ -2,6 +2,7 @@ package be.fooda.backend.user;
 
 import be.fooda.backend.user.config.RestClientConfig;
 import be.fooda.backend.user.config.SwaggerConfig;
+import be.fooda.backend.user.config.WebSecurityConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
@@ -14,7 +15,8 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 @EnableSwagger2
 @Import({
         RestClientConfig.class,
-        SwaggerConfig.class
+        SwaggerConfig.class,
+        WebSecurityConfig.class
 })
 public class FoodaUserApp {
 
