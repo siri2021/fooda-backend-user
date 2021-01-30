@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
 
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @RestController
@@ -23,12 +23,12 @@ public class FoodaUserController {
     private final FoodaTwilioBridge twilioBridge;
     private final FoodaUserRepository userRepository;
 
-    @GetMapping("code")
-    public ResponseEntity sendCode(@RequestParam final String phone) {
+    @GetMapping("code/{phone}")
+    public ResponseEntity sendCode(@PathVariable String phone) {
 
         int min = 100_000;
         int max = 999_999;
-        String code = String.valueOf(ThreadLocalRandom.current().nextInt(min, max) + min);
+        String code = String.valueOf(new Random().nextInt(max) + min);
 
         boolean isCodeSent = twilioBridge.sendCode(phone, code);
 
@@ -58,8 +58,8 @@ public class FoodaUserController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.SMS_CODE_IS_SENT);
     }
 
-    @GetMapping("validate")
-    public ResponseEntity validateCode(@RequestParam final String phone, @RequestParam final String code) {
+    @GetMapping("validate/{phone}/code/{code}")
+    public ResponseEntity validateCode(@PathVariable String phone, @PathVariable String code) {
 
         if (userRepository.existsByLoginAndIsActive(phone, false))
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.USER_IS_DELETED_CANNOT_BE_VALIDATED);
@@ -111,7 +111,7 @@ public class FoodaUserController {
     }
 
     @GetMapping("phone/{phone}")
-    public ResponseEntity getByPhone(@RequestParam String phone) {
+    public ResponseEntity getByPhone(@PathVariable String phone) {
 
         final Optional<FoodaUser> foundUser = userRepository.findByLoginAndIsActive(phone, true);
 
@@ -122,10 +122,10 @@ public class FoodaUserController {
         return ResponseEntity.status(HttpStatus.FOUND).body(foundUser);
     }
 
-    @PatchMapping("delete_user_by_username")
-    public ResponseEntity deleteUserById(@RequestParam String username) {
+    @DeleteMapping("{phone}")
+    public ResponseEntity deleteUserById(@PathVariable String phone) {
 
-        Optional<FoodaUser> foundUser = userRepository.findByLoginAndIsActive(username, true);
+        Optional<FoodaUser> foundUser = userRepository.findByLoginAndIsActive(phone, true);
 
         if (!foundUser.isPresent()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(FoodaUserHttpFailureMessages.USER_DOES_NOT_EXIST);
@@ -139,7 +139,7 @@ public class FoodaUserController {
         userBeingDeleted.setIsActive(Boolean.FALSE);
         userRepository.save(userBeingDeleted);
 
-        if (!userRepository.existsByLoginAndIsActive(username, true)) {
+        if (!userRepository.existsByLoginAndIsActive(phone, true)) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(FoodaUserHttpFailureMessages.USER_COULD_NOT_BE_DELETED);
         }
 
