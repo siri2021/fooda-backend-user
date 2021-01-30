@@ -12,6 +12,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.UUID;
 
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Data
@@ -22,7 +23,7 @@ public class FoodaUser {
     @EqualsAndHashCode.Include
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
+    private UUID id;
 
     @EqualsAndHashCode.Include
     @Column(unique = true)
@@ -46,7 +47,7 @@ public class FoodaUser {
     @UpdateTimestamp
     private LocalDateTime lastUpdated;
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(targetClass = FoodaRole.class, fetch = FetchType.EAGER)
     @CollectionTable
     @Enumerated(EnumType.STRING)
     private Set<FoodaRole> roles;

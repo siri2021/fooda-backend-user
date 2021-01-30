@@ -5,6 +5,7 @@ import be.fooda.backend.user.dao.FoodaUserRepository;
 import be.fooda.backend.user.model.entity.FoodaUser;
 import be.fooda.backend.user.model.http.FoodaUserHttpFailureMessages;
 import be.fooda.backend.user.model.http.FoodaUserHttpSuccessMessages;
+import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @RestController
@@ -23,8 +25,14 @@ public class FoodaUserController {
     private final FoodaTwilioBridge twilioBridge;
     private final FoodaUserRepository userRepository;
 
-    @GetMapping("code/{phone}")
-    public ResponseEntity sendCode(@PathVariable String phone) {
+    @ApiOperation(
+            value = "Send SMS verification code to user. It is will generate a code with 6 digits.",
+            notes = "If the user is new, it creates a user in DB and then sets a validation code. " +
+                    "If the user already exists it just generates a validation code. " +
+                    "It will connect to Twilio SMS API and send a message using related credentials."
+    )
+    @GetMapping("code")
+    public ResponseEntity sendCode(@RequestParam String phone) {
 
         int min = 100_000;
         int max = 999_999;
@@ -58,8 +66,12 @@ public class FoodaUserController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.SMS_CODE_IS_SENT);
     }
 
-    @GetMapping("validate/{phone}/code/{code}")
-    public ResponseEntity validateCode(@PathVariable String phone, @PathVariable String code) {
+    @ApiOperation(
+            value = "Send SMS notification to the user . It is will generate a code with 6 digits.",
+            notes = "It will connect to Twilio SMS API and send a message using related credentials."
+    )
+    @GetMapping("validate")
+    public ResponseEntity validateCode(@RequestParam String phone, @RequestParam String code) {
 
         if (userRepository.existsByLoginAndIsActive(phone, false))
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.USER_IS_DELETED_CANNOT_BE_VALIDATED);
@@ -86,8 +98,8 @@ public class FoodaUserController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.USER_CODE_IS_VALID);
     }
 
-    @GetMapping("exists/{id}")
-    public ResponseEntity existsById(@PathVariable Long id) {
+    @GetMapping("exists")
+    public ResponseEntity existsById(@RequestParam UUID id) {
 
         final boolean userExists = userRepository.existsById(id);
 
@@ -98,8 +110,8 @@ public class FoodaUserController {
         return ResponseEntity.status(HttpStatus.FOUND).body(FoodaUserHttpFailureMessages.USER_EXISTS);
     }
 
-    @GetMapping("{id}")
-    public ResponseEntity getById(@PathVariable Long id) {
+    @GetMapping("get_by_id")
+    public ResponseEntity getById(@RequestParam UUID id) {
 
         final Optional<FoodaUser> foundUser = userRepository.findById(id);
 
@@ -110,8 +122,8 @@ public class FoodaUserController {
         return ResponseEntity.status(HttpStatus.FOUND).body(foundUser);
     }
 
-    @GetMapping("phone/{phone}")
-    public ResponseEntity getByPhone(@PathVariable String phone) {
+    @GetMapping("get_by_phone")
+    public ResponseEntity getByPhone(@RequestParam String phone) {
 
         final Optional<FoodaUser> foundUser = userRepository.findByLoginAndIsActive(phone, true);
 
@@ -122,8 +134,8 @@ public class FoodaUserController {
         return ResponseEntity.status(HttpStatus.FOUND).body(foundUser);
     }
 
-    @DeleteMapping("{phone}")
-    public ResponseEntity deleteUserById(@PathVariable String phone) {
+    @DeleteMapping("delete_by_phone")
+    public ResponseEntity deleteById(@RequestParam String phone) {
 
         Optional<FoodaUser> foundUser = userRepository.findByLoginAndIsActive(phone, true);
 
