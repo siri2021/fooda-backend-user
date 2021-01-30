@@ -1,4 +1,4 @@
-package be.fooda.backend.user.model.twilio;
+package be.fooda.backend.user.model.twilio.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

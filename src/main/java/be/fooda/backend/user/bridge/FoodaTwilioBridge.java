@@ -1,7 +1,7 @@
 package be.fooda.backend.user.bridge;
 
-import be.fooda.backend.user.model.twilio.MessageRequest;
-import be.fooda.backend.user.model.twilio.MessageResponse;
+import be.fooda.backend.user.model.twilio.request.MessageRequest;
+import be.fooda.backend.user.model.twilio.response.MessageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
