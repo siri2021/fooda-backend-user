@@ -38,11 +38,7 @@ public class UserController {
         int max = 999_999;
         String code = String.valueOf(new Random().nextInt(max) + min);
 
-        boolean isCodeSent = twilioBridge.sendCode(phone, code);
-
-        if (!isCodeSent) {
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.SMS_CODE_COULD_NOT_BE_SENT_TO_USER);
-        }
+        twilioBridge.sendCode(phone, code);
 
         final Optional<UserEntity> existingUser = userRepository.findByLoginAndIsActive(phone, true);
 

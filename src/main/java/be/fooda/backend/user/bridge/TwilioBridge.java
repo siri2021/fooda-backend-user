@@ -22,7 +22,7 @@ public class TwilioBridge {
     @Value("${twilio.bridge.url}")
     private String baseURL;
 
-    public boolean sendCode(String phone, String code) {
+    public void sendCode(String phone, String code) {
 
         MessageRequest request = new MessageRequest();
 
@@ -33,14 +33,12 @@ public class TwilioBridge {
 
         if (!twilioResponse.getStatusCode().is2xxSuccessful()) {
             log.trace("Sms validation code could not be sent user phone " + phone);
-            return false;
+        } else {
+            log.trace("Sms validation code is sent to user phone " + phone);
         }
-
-        log.trace("Sms validation code is sent to user phone " + phone);
-        return true;
     }
 
-    public boolean sendValidated(String phone) {
+    public void sendValidated(String phone) {
 
         MessageRequest request = new MessageRequest();
 
@@ -51,10 +49,8 @@ public class TwilioBridge {
 
         if (!twilioResponse.getStatusCode().is2xxSuccessful()) {
             log.trace("Sms notification code could not be sent user phone " + phone);
-            return false;
+        } else {
+            log.trace("Sms notification code is sent to user phone " + phone);
         }
-
-        log.trace("Sms notification code is sent to user phone " + phone);
-        return true;
     }
 }
