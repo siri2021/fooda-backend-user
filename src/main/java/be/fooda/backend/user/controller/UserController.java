@@ -42,19 +42,20 @@ public class UserController {
 
         twilioBridge.sendCode(phone, code);
 
-        final Optional<UserEntity> existingUser = userRepository.findByLoginAndIsActive(phone, true);
+        if (userRepository.existsByLogin(phone)) {
 
-        if (userRepository.existsByLoginAndIsActive(phone, false)) {
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_IS_DELETED_CANNOT_LOGIN);
-        }
+            final UserEntity existingUserBeingUpdated = userRepository.getOneByLogin(phone);
 
-        if (existingUser.isPresent()) {
-            final UserEntity existingUserBeingUpdated = existingUser.get();
+            if (existingUserBeingUpdated.getIsActive().equals(Boolean.FALSE))
+                return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_IS_DELETED_CANNOT_LOGIN);
+
             existingUserBeingUpdated.setIsAuthenticated(false);
             existingUserBeingUpdated.setValidationExpiry(LocalDateTime.now().plusHours(2));
             existingUserBeingUpdated.setValidationCode(code);
             userRepository.save(existingUserBeingUpdated);
+
         } else {
+
             UserEntity newUserBeingCreated = new UserEntity();
             newUserBeingCreated.setLogin(phone);
             newUserBeingCreated.setValidationCode(code);
@@ -72,25 +73,24 @@ public class UserController {
     @GetMapping("validate")
     public ResponseEntity validateCode(@RequestParam String phone, @RequestParam String code) {
 
-        if (userRepository.existsByLoginAndIsActive(phone, false))
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_IS_DELETED_CANNOT_BE_VALIDATED);
-
-        final Optional<UserEntity> foundUserByLogin = userRepository.findByLoginAndIsActive(phone, true);
-
-        if (!foundUserByLogin.isPresent())
+        if (!userRepository.existsByLogin(phone))
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_DOES_NOT_EXIST);
 
-        if (foundUserByLogin.get().getIsAuthenticated().equals(Boolean.TRUE))
+        UserEntity foundUserByLogin = userRepository.getOneByLogin(phone);
+
+        if (foundUserByLogin.getIsActive().equals(Boolean.FALSE))
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_IS_DELETED_CANNOT_BE_VALIDATED);
+
+        if (foundUserByLogin.getIsAuthenticated().equals(Boolean.TRUE)) {
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_CODE_IS_VALID);
+        }
 
-        final UserEntity userBeingAuthenticated = foundUserByLogin.get();
+        if (!foundUserByLogin.getValidationCode().equalsIgnoreCase(code))
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(HttpFailureMessages.USER_CODE_IS_NOT_VALID);
 
-        if (!userBeingAuthenticated.getValidationCode().equalsIgnoreCase(code))
-            return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_CODE_IS_NOT_VALID);
-
-        userBeingAuthenticated.setIsAuthenticated(Boolean.TRUE);
-        userBeingAuthenticated.setValidationExpiry(LocalDateTime.now().plusHours(2));
-        userRepository.save(userBeingAuthenticated);
+        foundUserByLogin.setIsAuthenticated(Boolean.TRUE);
+        foundUserByLogin.setValidationExpiry(LocalDateTime.now().plusHours(2));
+        userRepository.save(foundUserByLogin);
 
         twilioBridge.sendValidated(phone);
 
@@ -125,35 +125,33 @@ public class UserController {
     @GetMapping("get_by_phone")
     public ResponseEntity getByPhone(@RequestParam String phone) {
 
-        final Optional<UserEntity> foundUser = userRepository.findByLoginAndIsActive(phone, true);
+        final Optional<UserEntity> foundUserByLogin = userRepository.findByLogin(phone);
 
-        if (!foundUser.isPresent()) {
+        if (!foundUserByLogin.isPresent()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(HttpFailureMessages.USER_DOES_NOT_EXIST);
         }
 
-        return ResponseEntity.status(HttpStatus.FOUND).body(foundUser);
+        if (foundUserByLogin.get().getIsActive().equals(Boolean.FALSE))
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_IS_DELETED);
+
+        return ResponseEntity.status(HttpStatus.FOUND).body(foundUserByLogin);
     }
 
     @DeleteMapping("delete_by_phone")
     public ResponseEntity deleteById(@RequestParam String phone) {
 
-        Optional<UserEntity> foundUser = userRepository.findByLoginAndIsActive(phone, true);
+        Optional<UserEntity> foundUserByLogin = userRepository.findByLogin(phone);
 
-        if (!foundUser.isPresent()) {
+        if (!foundUserByLogin.isPresent()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(HttpFailureMessages.USER_DOES_NOT_EXIST);
         }
 
-        if (foundUser.get().getIsActive().equals(Boolean.FALSE)) {
+        if (foundUserByLogin.get().getIsActive().equals(Boolean.FALSE)) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_ALREADY_DELETED);
         }
 
-        final UserEntity userBeingDeleted = foundUser.get();
-        userBeingDeleted.setIsActive(Boolean.FALSE);
-        userRepository.save(userBeingDeleted);
-
-        if (!userRepository.existsByLoginAndIsActive(phone, true)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(HttpFailureMessages.USER_COULD_NOT_BE_DELETED);
-        }
+        foundUserByLogin.get().setIsActive(Boolean.FALSE);
+        userRepository.save(foundUserByLogin.get());
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_DELETED);
     }

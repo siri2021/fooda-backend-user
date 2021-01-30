@@ -6,6 +6,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum HttpFailureMessages {
+    USER_IS_DELETED("User existed but deleted."),
     USER_DOES_NOT_EXIST("There is no such user with the given information"),
     USER_IS_DELETED_CANNOT_BE_VALIDATED("This user cannot be validated because it is deleted."),
     USER_IS_DELETED_CANNOT_LOGIN("This user is deleted. You cannot use a deleted account. Please try to create another."),
@@ -51,6 +52,7 @@ public enum HttpFailureMessages {
     NO_USER_FOUND("No user found"),
     USER_ALREADY_EXISTS("user already exists"),
     REQUIRED_FIELDS_ARE_MISSING_IN_UPDATE_REQUEST("Required fields are missing in update request"),
+    USER_CODE_IS_NOT_VALID("User validation is not valid."),
     USER_COULD_NOT_BE_DELETED("Given user could not be deleted");
 
     private final String description;
