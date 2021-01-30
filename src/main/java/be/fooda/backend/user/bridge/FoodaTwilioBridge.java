@@ -1,21 +1,18 @@
 package be.fooda.backend.user.bridge;
 
-import be.fooda.backend.user.model.FoodaRole;
-import be.fooda.backend.user.model.entity.FoodaUser;
-import be.fooda.backend.user.model.twilio.request.FoodaTwilioUserReq;
-import be.fooda.backend.user.model.twilio.response.FoodaTwilioUserRes;
+import be.fooda.backend.user.model.twilio.MessageRequest;
+import be.fooda.backend.user.model.twilio.MessageResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.Collections;
 
+@Slf4j
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @Service
 public class FoodaTwilioBridge {
@@ -25,41 +22,39 @@ public class FoodaTwilioBridge {
     @Value("${twilio.bridge.url}")
     private String baseURL;
 
-    public Optional<FoodaUser> sendUserSmsCode(String phone, FoodaRole... roles) {
+    public boolean sendCode(String phone, String code) {
 
-        ResponseEntity<FoodaTwilioUserRes> twilioResponse = restTemplate.getForEntity(baseURL + "sendUserSmsCode?login={phone}", FoodaTwilioUserRes.class, phone);
+        MessageRequest request = new MessageRequest();
+
+        request.setMessage("Fooda validation code: " + code);
+        request.setNumbers(Collections.singletonList(phone));
+
+        ResponseEntity<MessageResponse> twilioResponse = restTemplate.postForEntity(baseURL + "/sms/send", request, MessageResponse.class);
 
         if (!twilioResponse.getStatusCode().is2xxSuccessful()) {
-            return Optional.empty();
+            log.trace("Sms validation code could not be sent user phone " + phone);
+            return false;
         }
 
-        FoodaUser user = new FoodaUser();
-        Set<FoodaRole> roleSet = new HashSet<>(Arrays.asList(roles));
-        FoodaTwilioUserRes twilioResponseBody = twilioResponse.getBody();
-        user.setLogin(twilioResponseBody.getPhone());
-        user.setPassword(twilioResponseBody.getSid());
-        user.setRoles(roleSet);
-
-        return Optional.of(user);
+        log.trace("Sms validation code is sent to user phone " + phone);
+        return true;
     }
 
-    public Optional<FoodaUser> validateUserSmsCode(FoodaUser user, String code) {
+    public boolean sendValidated(String phone) {
 
-        FoodaTwilioUserReq userReq = new FoodaTwilioUserReq();
-        userReq.setCode(code);
-        userReq.setSid(user.getPassword());
-        userReq.setPhone(user.getLogin());
+        MessageRequest request = new MessageRequest();
 
-        final ResponseEntity<FoodaTwilioUserRes> twilioResponse =
-                restTemplate.postForEntity(baseURL + "validateUserSmsCode", userReq, FoodaTwilioUserRes.class);
+        request.setMessage("Fooda user is validated. You can now login to your account and start ordering.");
+        request.setNumbers(Collections.singletonList(phone));
+
+        ResponseEntity<MessageResponse> twilioResponse = restTemplate.postForEntity(baseURL + "/sms/send", request, MessageResponse.class);
 
         if (!twilioResponse.getStatusCode().is2xxSuccessful()) {
-            return Optional.empty();
+            log.trace("Sms notification code could not be sent user phone " + phone);
+            return false;
         }
 
-        if (twilioResponse.hasBody() && twilioResponse.getBody().getIsValidated() != null)
-            user.setIsAuthenticated(twilioResponse.getBody().getIsValidated());
-
-        return Optional.of(user);
+        log.trace("Sms notification code is sent to user phone " + phone);
+        return true;
     }
 }

@@ -34,6 +34,10 @@ public class FoodaUser {
 
     private Boolean isActive = Boolean.TRUE;
 
+    private String validationCode;
+
+    private LocalDateTime validationExpiry = LocalDateTime.now().plusHours(2);
+
     private Boolean isAuthenticated = Boolean.FALSE;
 
     @CreationTimestamp

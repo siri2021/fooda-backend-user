@@ -25,7 +25,8 @@ public enum FoodaUserHttpSuccessMessages {
     ORDER_EXISTS("Given order exists"),
     ADDRESS_EXISTS("Given address exists"),
     SMS_CODE_IS_SENT("SMS code is sent to the given user"),
-    USER_IS_VALID("User is validated"),
+    USER_CODE_IS_VALID("User validation code is valid"),
+    USER_CODE_IS_NOT_VALID("User validation is not valid."),
     USER_CREATED("User is created with the given info"),
     USER_UPDATED("User is updated based on the given info"),
     USER_DELETED("Given user deleted");

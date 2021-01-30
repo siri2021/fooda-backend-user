@@ -11,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @RestController
@@ -21,109 +23,71 @@ public class FoodaUserController {
     private final FoodaTwilioBridge twilioBridge;
     private final FoodaUserRepository userRepository;
 
-    @GetMapping("send_sms_code")
-    public ResponseEntity sendSmsCode(@RequestParam final String phoneNumber) {
+    @GetMapping("code")
+    public ResponseEntity sendCode(@RequestParam final String phone) {
 
-        final Optional<FoodaUser> oUser = twilioBridge.sendUserSmsCode(phoneNumber);
+        int min = 100_000;
+        int max = 999_999;
+        String code = String.valueOf(ThreadLocalRandom.current().nextInt(min, max) + min);
 
-        if (!oUser.isPresent()) {
+        boolean isCodeSent = twilioBridge.sendCode(phone, code);
+
+        if (!isCodeSent) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.SMS_CODE_COULD_NOT_BE_SENT_TO_USER);
         }
 
-        final Optional<FoodaUser> existingUser = userRepository.findByLoginAndIsActive(phoneNumber, true);
+        final Optional<FoodaUser> existingUser = userRepository.findByLoginAndIsActive(phone, true);
 
-        if (userRepository.existsByLoginAndIsActive(phoneNumber, false)) {
+        if (userRepository.existsByLoginAndIsActive(phone, false)) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.USER_IS_DELETED_CANNOT_LOGIN);
         }
 
         if (existingUser.isPresent()) {
             final FoodaUser existingUserBeingUpdated = existingUser.get();
             existingUserBeingUpdated.setIsAuthenticated(false);
+            existingUserBeingUpdated.setValidationExpiry(LocalDateTime.now().plusHours(2));
+            existingUserBeingUpdated.setValidationCode(code);
             userRepository.save(existingUserBeingUpdated);
         } else {
-            userRepository.save(oUser.get());
+            FoodaUser newUserBeingCreated = new FoodaUser();
+            newUserBeingCreated.setLogin(phone);
+            newUserBeingCreated.setValidationCode(code);
+            userRepository.save(newUserBeingCreated);
         }
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.SMS_CODE_IS_SENT);
     }
 
-    @GetMapping("validate_sms_code")
-    public ResponseEntity validateSmsCode(@RequestParam final String phoneNumber, @RequestParam final String smsCode) {
+    @GetMapping("validate")
+    public ResponseEntity validateCode(@RequestParam final String phone, @RequestParam final String code) {
 
-        if (userRepository.existsByLoginAndIsActive(phoneNumber, false)) {
+        if (userRepository.existsByLoginAndIsActive(phone, false))
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.USER_IS_DELETED_CANNOT_BE_VALIDATED);
-        }
 
-        final Optional<FoodaUser> foundUserByLogin = userRepository.findByLoginAndIsActive(phoneNumber, true);
+        final Optional<FoodaUser> foundUserByLogin = userRepository.findByLoginAndIsActive(phone, true);
 
-        if (!foundUserByLogin.isPresent()) {
+        if (!foundUserByLogin.isPresent())
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.USER_DOES_NOT_EXIST);
-        }
 
-        // TODO there is still logical incomplete implementation here ..
-        // we are checking if user is authenticated before sending validate by sms request to twilio..
-        // but what if someone updated the database isAuthenticated column to true via SQL query..
-        // this is a leak in the flow.. but this code is good enough for dev environment
-        if (foundUserByLogin.get().getIsAuthenticated().equals(Boolean.TRUE)) {
-            return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.USER_IS_VALID);
-        }
+        if (foundUserByLogin.get().getIsAuthenticated().equals(Boolean.TRUE))
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.USER_CODE_IS_VALID);
 
         final FoodaUser userBeingAuthenticated = foundUserByLogin.get();
-        final Optional<FoodaUser> oUser = twilioBridge.validateUserSmsCode(userBeingAuthenticated, smsCode);
 
-        if (!oUser.isPresent()) {
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.SMS_CODE_COULD_NOT_BE_SENT_TO_USER);
-        }
+        if (!userBeingAuthenticated.getValidationCode().equalsIgnoreCase(code))
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.USER_CODE_IS_NOT_VALID);
 
+        userBeingAuthenticated.setIsAuthenticated(Boolean.TRUE);
+        userBeingAuthenticated.setValidationExpiry(LocalDateTime.now().plusHours(2));
         userRepository.save(userBeingAuthenticated);
 
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.USER_IS_VALID);
+        twilioBridge.sendValidated(phone);
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.USER_CODE_IS_VALID);
     }
 
-    @GetMapping("validate_sms_code_for_update")
-    public ResponseEntity validateSmsCodeForUpdate(
-            @RequestParam final String existingPhoneNumber,
-            @RequestParam final String newPhoneNumber,
-            @RequestParam final String smsCodeFromExistingPhone,
-            @RequestParam final String smsCodeFromNewPhone) {
-
-        // the existing phone number must be in the DB ..
-        final Optional<FoodaUser> foundExistingUser = userRepository.findByLoginAndIsActive(existingPhoneNumber, true);
-
-        // the code from existing phone must valid ..
-        if (!foundExistingUser.isPresent()) {
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.USER_DOES_NOT_EXIST);
-        }
-        final Optional<FoodaUser> oExistingUser = twilioBridge.validateUserSmsCode(foundExistingUser.get(), smsCodeFromExistingPhone);
-
-        if (!oExistingUser.isPresent()) {
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.SMS_CODE_COULD_NOT_BE_SENT_TO_USER);
-        }
-
-        // the new phone number must not exist in the DB ..
-        boolean doesNewPhoneNumberExist = userRepository.existsByLogin(newPhoneNumber);
-
-        if (doesNewPhoneNumberExist) {
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.USER_TO_UPDATE_ALREADY_EXIST);
-        }
-
-        // the code from new phone number must also be valid ..
-        final Optional<FoodaUser> oNewUser = twilioBridge.validateUserSmsCode(foundExistingUser.get(), smsCodeFromNewPhone);
-
-        if (!oNewUser.isPresent()) {
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.SMS_CODE_COULD_NOT_BE_SENT_TO_USER);
-        }
-
-        final FoodaUser fromExistingUserToNewUser = oExistingUser.get();
-        fromExistingUserToNewUser.setLogin(newPhoneNumber);
-        fromExistingUserToNewUser.setIsAuthenticated(true);
-        userRepository.save(fromExistingUserToNewUser);
-
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.USER_UPDATED);
-    }
-
-    @GetMapping("exist_by_user_id")
-    public ResponseEntity existByUserId(@RequestParam Long id) {
+    @GetMapping("exists/{id}")
+    public ResponseEntity existsById(@PathVariable Long id) {
 
         final boolean userExists = userRepository.existsById(id);
 
@@ -134,8 +98,8 @@ public class FoodaUserController {
         return ResponseEntity.status(HttpStatus.FOUND).body(FoodaUserHttpFailureMessages.USER_EXISTS);
     }
 
-    @GetMapping("get_user_by_id")
-    public ResponseEntity getUserById(@RequestParam Long id) {
+    @GetMapping("{id}")
+    public ResponseEntity getById(@PathVariable Long id) {
 
         final Optional<FoodaUser> foundUser = userRepository.findById(id);
 
@@ -146,10 +110,10 @@ public class FoodaUserController {
         return ResponseEntity.status(HttpStatus.FOUND).body(foundUser);
     }
 
-    @GetMapping("get_user_by_username")
-    public ResponseEntity getUserByUsername(@RequestParam String username) {
+    @GetMapping("phone/{phone}")
+    public ResponseEntity getByPhone(@RequestParam String phone) {
 
-        final Optional<FoodaUser> foundUser = userRepository.findByLoginAndIsActive(username, true);
+        final Optional<FoodaUser> foundUser = userRepository.findByLoginAndIsActive(phone, true);
 
         if (!foundUser.isPresent()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(FoodaUserHttpFailureMessages.USER_DOES_NOT_EXIST);
