@@ -1,6 +1,5 @@
 package be.fooda.backend.user.model.entity;
 
-import be.fooda.backend.user.model.FoodaRole;
 import be.fooda.backend.user.service.validation.PhoneNumber;
 import be.fooda.backend.user.service.validation.TwilioSid;
 import lombok.Data;
@@ -18,7 +17,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @Entity
-public class FoodaUser {
+public class UserEntity {
 
     @EqualsAndHashCode.Include
     @Id
@@ -47,8 +46,8 @@ public class FoodaUser {
     @UpdateTimestamp
     private LocalDateTime lastUpdated;
 
-    @ElementCollection(targetClass = FoodaRole.class, fetch = FetchType.EAGER)
+    @ElementCollection(targetClass = RoleEntity.class, fetch = FetchType.EAGER)
     @CollectionTable
     @Enumerated(EnumType.STRING)
-    private Set<FoodaRole> roles;
+    private Set<RoleEntity> roles;
 }

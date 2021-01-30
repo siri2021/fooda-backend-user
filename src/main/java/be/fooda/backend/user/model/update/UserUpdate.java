@@ -1,6 +1,5 @@
 package be.fooda.backend.user.model.update;
 
-import be.fooda.backend.user.model.FoodaRole;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -11,7 +10,7 @@ import java.util.Set;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Data
 @NoArgsConstructor
-public class FoodaUserUpdate {
+public class UserUpdate {
 
     @EqualsAndHashCode.Include
     private String login;
@@ -21,5 +20,5 @@ public class FoodaUserUpdate {
 
     private Boolean isActive;
 
-    private Set<FoodaRole> roles;
+    private Set<RoleUpdate> roles;
 }

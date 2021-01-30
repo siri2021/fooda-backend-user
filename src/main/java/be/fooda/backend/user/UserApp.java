@@ -16,10 +16,10 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
         SwaggerConfig.class,
         WebSecurityConfig.class
 })
-public class FoodaUserApp {
+public class UserApp {
 
     public static void main(String[] args) {
-        SpringApplication.run(FoodaUserApp.class, args);
+        SpringApplication.run(UserApp.class, args);
     }
 
 }

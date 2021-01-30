@@ -22,7 +22,7 @@
         <jjwt.version>0.9.0</jjwt.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <start-class>be.fooda.backend.user.FoodaUserApp</start-class>
+        <start-class>be.fooda.backend.user.UserApp</start-class>
     </properties>
 
     <dependencyManagement>

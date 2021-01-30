@@ -1,8 +1,8 @@
 package be.fooda.backend.user.service.mapper;
 
-import be.fooda.backend.user.model.create.FoodaUserCreate;
-import be.fooda.backend.user.model.entity.FoodaUser;
-import be.fooda.backend.user.model.update.FoodaUserUpdate;
+import be.fooda.backend.user.model.create.UserCreate;
+import be.fooda.backend.user.model.entity.UserEntity;
+import be.fooda.backend.user.model.update.UserUpdate;
 import org.mapstruct.*;
 
 @Mapper(
@@ -12,13 +12,13 @@ import org.mapstruct.*;
 )
 public interface FoodaUserMapper {
 
-    FoodaUser fromCreateToEntity(FoodaUserCreate from);
+    UserEntity toEntity(UserCreate from);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    FoodaUser fromUpdateToEntity(FoodaUserUpdate from, @MappingTarget FoodaUser to);
+    UserEntity toEntity(UserUpdate from, @MappingTarget UserEntity to);
 
-    FoodaUserCreate fromEntityToCreate(FoodaUser from);
+    UserCreate toDTO(UserEntity from);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    FoodaUserUpdate fromEntityToUpdate(FoodaUser from, @MappingTarget FoodaUserUpdate to);
+    UserUpdate toDTO(UserEntity from, @MappingTarget UserUpdate to);
 }

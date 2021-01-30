@@ -1,10 +1,10 @@
-package be.fooda.backend.user.view.controller;
+package be.fooda.backend.user.controller;
 
-import be.fooda.backend.user.bridge.FoodaTwilioBridge;
-import be.fooda.backend.user.dao.FoodaUserRepository;
-import be.fooda.backend.user.model.entity.FoodaUser;
-import be.fooda.backend.user.model.http.FoodaUserHttpFailureMessages;
-import be.fooda.backend.user.model.http.FoodaUserHttpSuccessMessages;
+import be.fooda.backend.user.bridge.TwilioBridge;
+import be.fooda.backend.user.dao.UserRepository;
+import be.fooda.backend.user.model.entity.UserEntity;
+import be.fooda.backend.user.model.http.HttpFailureMessages;
+import be.fooda.backend.user.model.http.HttpSuccessMessages;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,10 +20,10 @@ import java.util.UUID;
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @RestController
 @RequestMapping("/")
-public class FoodaUserController {
+public class UserController {
 
-    private final FoodaTwilioBridge twilioBridge;
-    private final FoodaUserRepository userRepository;
+    private final TwilioBridge twilioBridge;
+    private final UserRepository userRepository;
 
     @ApiOperation(
             value = "Send SMS verification code to user. It is will generate a code with 6 digits.",
@@ -41,29 +41,29 @@ public class FoodaUserController {
         boolean isCodeSent = twilioBridge.sendCode(phone, code);
 
         if (!isCodeSent) {
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.SMS_CODE_COULD_NOT_BE_SENT_TO_USER);
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.SMS_CODE_COULD_NOT_BE_SENT_TO_USER);
         }
 
-        final Optional<FoodaUser> existingUser = userRepository.findByLoginAndIsActive(phone, true);
+        final Optional<UserEntity> existingUser = userRepository.findByLoginAndIsActive(phone, true);
 
         if (userRepository.existsByLoginAndIsActive(phone, false)) {
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.USER_IS_DELETED_CANNOT_LOGIN);
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_IS_DELETED_CANNOT_LOGIN);
         }
 
         if (existingUser.isPresent()) {
-            final FoodaUser existingUserBeingUpdated = existingUser.get();
+            final UserEntity existingUserBeingUpdated = existingUser.get();
             existingUserBeingUpdated.setIsAuthenticated(false);
             existingUserBeingUpdated.setValidationExpiry(LocalDateTime.now().plusHours(2));
             existingUserBeingUpdated.setValidationCode(code);
             userRepository.save(existingUserBeingUpdated);
         } else {
-            FoodaUser newUserBeingCreated = new FoodaUser();
+            UserEntity newUserBeingCreated = new UserEntity();
             newUserBeingCreated.setLogin(phone);
             newUserBeingCreated.setValidationCode(code);
             userRepository.save(newUserBeingCreated);
         }
 
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.SMS_CODE_IS_SENT);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.SMS_CODE_IS_SENT);
     }
 
     @ApiOperation(
@@ -74,20 +74,20 @@ public class FoodaUserController {
     public ResponseEntity validateCode(@RequestParam String phone, @RequestParam String code) {
 
         if (userRepository.existsByLoginAndIsActive(phone, false))
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.USER_IS_DELETED_CANNOT_BE_VALIDATED);
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_IS_DELETED_CANNOT_BE_VALIDATED);
 
-        final Optional<FoodaUser> foundUserByLogin = userRepository.findByLoginAndIsActive(phone, true);
+        final Optional<UserEntity> foundUserByLogin = userRepository.findByLoginAndIsActive(phone, true);
 
         if (!foundUserByLogin.isPresent())
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.USER_DOES_NOT_EXIST);
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_DOES_NOT_EXIST);
 
         if (foundUserByLogin.get().getIsAuthenticated().equals(Boolean.TRUE))
-            return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.USER_CODE_IS_VALID);
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_CODE_IS_VALID);
 
-        final FoodaUser userBeingAuthenticated = foundUserByLogin.get();
+        final UserEntity userBeingAuthenticated = foundUserByLogin.get();
 
         if (!userBeingAuthenticated.getValidationCode().equalsIgnoreCase(code))
-            return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.USER_CODE_IS_NOT_VALID);
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_CODE_IS_NOT_VALID);
 
         userBeingAuthenticated.setIsAuthenticated(Boolean.TRUE);
         userBeingAuthenticated.setValidationExpiry(LocalDateTime.now().plusHours(2));
@@ -95,7 +95,7 @@ public class FoodaUserController {
 
         twilioBridge.sendValidated(phone);
 
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.USER_CODE_IS_VALID);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_CODE_IS_VALID);
     }
 
     @GetMapping("exists")
@@ -104,19 +104,19 @@ public class FoodaUserController {
         final boolean userExists = userRepository.existsById(id);
 
         if (!userExists) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(FoodaUserHttpFailureMessages.USER_DOES_NOT_EXIST);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(HttpFailureMessages.USER_DOES_NOT_EXIST);
         }
 
-        return ResponseEntity.status(HttpStatus.FOUND).body(FoodaUserHttpFailureMessages.USER_EXISTS);
+        return ResponseEntity.status(HttpStatus.FOUND).body(HttpFailureMessages.USER_EXISTS);
     }
 
     @GetMapping("get_by_id")
     public ResponseEntity getById(@RequestParam UUID id) {
 
-        final Optional<FoodaUser> foundUser = userRepository.findById(id);
+        final Optional<UserEntity> foundUser = userRepository.findById(id);
 
         if (!foundUser.isPresent()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(FoodaUserHttpFailureMessages.USER_DOES_NOT_EXIST);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(HttpFailureMessages.USER_DOES_NOT_EXIST);
         }
 
         return ResponseEntity.status(HttpStatus.FOUND).body(foundUser);
@@ -125,10 +125,10 @@ public class FoodaUserController {
     @GetMapping("get_by_phone")
     public ResponseEntity getByPhone(@RequestParam String phone) {
 
-        final Optional<FoodaUser> foundUser = userRepository.findByLoginAndIsActive(phone, true);
+        final Optional<UserEntity> foundUser = userRepository.findByLoginAndIsActive(phone, true);
 
         if (!foundUser.isPresent()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(FoodaUserHttpFailureMessages.USER_DOES_NOT_EXIST);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(HttpFailureMessages.USER_DOES_NOT_EXIST);
         }
 
         return ResponseEntity.status(HttpStatus.FOUND).body(foundUser);
@@ -137,25 +137,25 @@ public class FoodaUserController {
     @DeleteMapping("delete_by_phone")
     public ResponseEntity deleteById(@RequestParam String phone) {
 
-        Optional<FoodaUser> foundUser = userRepository.findByLoginAndIsActive(phone, true);
+        Optional<UserEntity> foundUser = userRepository.findByLoginAndIsActive(phone, true);
 
         if (!foundUser.isPresent()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(FoodaUserHttpFailureMessages.USER_DOES_NOT_EXIST);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(HttpFailureMessages.USER_DOES_NOT_EXIST);
         }
 
         if (foundUser.get().getIsActive().equals(Boolean.FALSE)) {
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(FoodaUserHttpFailureMessages.USER_ALREADY_DELETED);
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_ALREADY_DELETED);
         }
 
-        final FoodaUser userBeingDeleted = foundUser.get();
+        final UserEntity userBeingDeleted = foundUser.get();
         userBeingDeleted.setIsActive(Boolean.FALSE);
         userRepository.save(userBeingDeleted);
 
         if (!userRepository.existsByLoginAndIsActive(phone, true)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(FoodaUserHttpFailureMessages.USER_COULD_NOT_BE_DELETED);
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(HttpFailureMessages.USER_COULD_NOT_BE_DELETED);
         }
 
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(FoodaUserHttpSuccessMessages.USER_DELETED);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_DELETED);
     }
 
 }

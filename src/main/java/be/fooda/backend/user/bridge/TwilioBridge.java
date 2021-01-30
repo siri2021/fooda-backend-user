@@ -15,7 +15,7 @@ import java.util.Collections;
 @Slf4j
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @Service
-public class FoodaTwilioBridge {
+public class TwilioBridge {
 
     private final RestTemplate restTemplate;
 

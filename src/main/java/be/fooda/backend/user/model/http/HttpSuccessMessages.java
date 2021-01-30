@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum FoodaUserHttpSuccessMessages {
+public enum HttpSuccessMessages {
     PRODUCT_ADDED("Product added to the basket based on the given information"),
     PRODUCT_UPDATED("Product updated based on the new information"),
     PRODUCT_DELETED("Product deleted based on the given information"),

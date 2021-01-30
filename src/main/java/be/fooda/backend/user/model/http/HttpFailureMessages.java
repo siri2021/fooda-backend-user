@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum FoodaUserHttpFailureMessages {
+public enum HttpFailureMessages {
     USER_DOES_NOT_EXIST("There is no such user with the given information"),
     USER_IS_DELETED_CANNOT_BE_VALIDATED("This user cannot be validated because it is deleted."),
     USER_IS_DELETED_CANNOT_LOGIN("This user is deleted. You cannot use a deleted account. Please try to create another."),
