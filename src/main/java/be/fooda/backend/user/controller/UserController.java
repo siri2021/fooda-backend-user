@@ -7,6 +7,7 @@ import be.fooda.backend.user.model.http.HttpFailureMessages;
 import be.fooda.backend.user.model.http.HttpSuccessMessages;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 
+@Slf4j
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @RestController
 @RequestMapping("/")
@@ -59,6 +61,7 @@ public class UserController {
             userRepository.save(newUserBeingCreated);
         }
 
+        log.trace("Validation code is sent to: " + phone);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.SMS_CODE_IS_SENT);
     }
 
@@ -91,6 +94,7 @@ public class UserController {
 
         twilioBridge.sendValidated(phone);
 
+        log.trace("Validation for " + phone + " is valid.");
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_CODE_IS_VALID);
     }
 

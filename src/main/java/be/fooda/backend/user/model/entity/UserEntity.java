@@ -1,7 +1,5 @@
 package be.fooda.backend.user.model.entity;
 
-import be.fooda.backend.user.service.validation.PhoneNumber;
-import be.fooda.backend.user.service.validation.TwilioSid;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -26,10 +24,8 @@ public class UserEntity {
 
     @EqualsAndHashCode.Include
     @Column(unique = true)
-    @PhoneNumber
     private String login;
 
-    @TwilioSid
     private String password;
 
     private Boolean isActive = Boolean.TRUE;
