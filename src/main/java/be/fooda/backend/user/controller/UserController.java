@@ -81,15 +81,16 @@ public class UserController {
         if (foundUserByLogin.getIsActive().equals(Boolean.FALSE))
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_IS_DELETED_CANNOT_BE_VALIDATED);
 
-        if (foundUserByLogin.getIsAuthenticated().equals(Boolean.TRUE)) {
+        if (foundUserByLogin.getIsAuthenticated().equals(Boolean.TRUE))
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_CODE_IS_VALID);
-        }
+
+        if (foundUserByLogin.getValidationExpiry().isBefore(LocalDateTime.now()))
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.VALIDATION_CODE_IS_EXPIRED);
 
         if (!foundUserByLogin.getValidationCode().equalsIgnoreCase(code))
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(HttpFailureMessages.USER_CODE_IS_NOT_VALID);
 
         foundUserByLogin.setIsAuthenticated(Boolean.TRUE);
-        foundUserByLogin.setValidationExpiry(LocalDateTime.now().plusHours(2));
         userRepository.save(foundUserByLogin);
 
         twilioBridge.sendValidated(phone);

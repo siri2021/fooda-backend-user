@@ -53,6 +53,7 @@ public enum HttpFailureMessages {
     USER_ALREADY_EXISTS("user already exists"),
     REQUIRED_FIELDS_ARE_MISSING_IN_UPDATE_REQUEST("Required fields are missing in update request"),
     USER_CODE_IS_NOT_VALID("User validation is not valid."),
+    VALIDATION_CODE_IS_EXPIRED("Validation code is expired, please try to get new one."),
     USER_COULD_NOT_BE_DELETED("Given user could not be deleted");
 
     private final String description;
