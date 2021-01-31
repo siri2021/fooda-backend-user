@@ -68,7 +68,6 @@ public class UserController {
             UserEntity newUserBeingCreated = new UserEntity();
             newUserBeingCreated.setLogin(phone);
             newUserBeingCreated.setValidationCode(code);
-            newUserBeingCreated.setPassword(password);
             newUserBeingCreated.setPassword(passwordEncoder.encode(password));
             userRepository.save(newUserBeingCreated);
         }
@@ -125,7 +124,7 @@ public class UserController {
         if (foundUserByLogin.getIsActive().equals(Boolean.FALSE))
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_IS_DELETED_CANNOT_BE_VALIDATED);
 
-        if (!foundUserByLogin.getPassword().equalsIgnoreCase(passwordEncoder.encode(password)))
+        if (!passwordEncoder.matches(password, foundUserByLogin.getPassword()))
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(HttpFailureMessages.PASSWORD_IS_NOT_CORRECT);
 
         foundUserByLogin.setIsAuthenticated(Boolean.TRUE);
