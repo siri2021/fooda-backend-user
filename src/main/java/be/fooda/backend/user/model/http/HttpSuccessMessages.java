@@ -29,6 +29,7 @@ public enum HttpSuccessMessages {
     USER_CREATED("User is created with the given info"),
     USER_UPDATED("User is updated based on the given info"),
     ROLE_IS_ADDED("Role is added to user."),
+    USER_LOGGED_IN("User successfully logged in."),
     USER_DELETED("Given user deleted");
 
     private final String description;

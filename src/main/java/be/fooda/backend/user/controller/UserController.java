@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 
+@Transactional
 @Slf4j
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @RestController
@@ -39,7 +40,6 @@ public class UserController {
                     "If the user already exists it just generates a validation code. " +
                     "It will connect to Twilio SMS API and send a message using related credentials."
     )
-    @Transactional
     @GetMapping("code")
     public ResponseEntity sendCode(@RequestParam String phone) {
 
@@ -81,7 +81,6 @@ public class UserController {
             value = "Send SMS notification to the user . It is will generate a code with 6 digits.",
             notes = "It will connect to Twilio SMS API and send a message using related credentials."
     )
-    @Transactional
     @GetMapping("validate")
     public ResponseEntity validateCode(@RequestParam String phone, @RequestParam String code) {
 
@@ -109,6 +108,31 @@ public class UserController {
 
         log.trace("Validation for " + phone + " is valid.");
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_CODE_IS_VALID);
+    }
+
+    @ApiOperation(
+            value = "Send SMS notification to the user . It is will generate a code with 6 digits.",
+            notes = "It will connect to Twilio SMS API and send a message using related credentials."
+    )
+    @GetMapping("login")
+    public ResponseEntity login(@RequestParam String phone, @RequestParam String password) {
+
+        if (!userRepository.existsByLogin(phone))
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_DOES_NOT_EXIST);
+
+        UserEntity foundUserByLogin = userRepository.getOneByLogin(phone);
+
+        if (foundUserByLogin.getIsActive().equals(Boolean.FALSE))
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_IS_DELETED_CANNOT_BE_VALIDATED);
+
+        if (!foundUserByLogin.getPassword().contentEquals(passwordEncoder.encode(password)))
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(HttpFailureMessages.PASSWORD_IS_NOT_CORRECT);
+
+        foundUserByLogin.setIsAuthenticated(Boolean.TRUE);
+        userRepository.save(foundUserByLogin);
+
+        log.trace("User with phone number " + phone + " logged in.");
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_LOGGED_IN);
     }
 
     @PutMapping("add_role")
@@ -168,7 +192,6 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.FOUND).body(foundUserByLogin);
     }
 
-    @Transactional
     @DeleteMapping("delete_by_phone")
     public ResponseEntity deleteById(@RequestParam String phone) {
 
