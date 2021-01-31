@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -33,6 +34,7 @@ public class UserController {
                     "If the user already exists it just generates a validation code. " +
                     "It will connect to Twilio SMS API and send a message using related credentials."
     )
+    @Transactional
     @GetMapping("code")
     public ResponseEntity sendCode(@RequestParam String phone) {
 
@@ -70,6 +72,7 @@ public class UserController {
             value = "Send SMS notification to the user . It is will generate a code with 6 digits.",
             notes = "It will connect to Twilio SMS API and send a message using related credentials."
     )
+    @Transactional
     @GetMapping("validate")
     public ResponseEntity validateCode(@RequestParam String phone, @RequestParam String code) {
 
@@ -138,6 +141,7 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.FOUND).body(foundUserByLogin);
     }
 
+    @Transactional
     @DeleteMapping("delete_by_phone")
     public ResponseEntity deleteById(@RequestParam String phone) {
 
