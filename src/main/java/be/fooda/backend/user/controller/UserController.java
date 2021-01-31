@@ -47,8 +47,8 @@ public class UserController {
         int max = 999_999;
         String code = String.valueOf(new Random().nextInt(max) + min);
 
-        twilioBridge.sendCode(phone, code);
         String password = generatePassword(12);
+        twilioBridge.sendCode(phone, code, password);
 
         if (userRepository.existsByLogin(phone)) {
 
@@ -105,7 +105,7 @@ public class UserController {
         foundUserByLogin.setIsAuthenticated(Boolean.TRUE);
         userRepository.save(foundUserByLogin);
 
-        twilioBridge.sendValidated(phone, foundUserByLogin.getPassword());
+        twilioBridge.sendValidated(phone);
 
         log.trace("Validation for " + phone + " is valid.");
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_CODE_IS_VALID);

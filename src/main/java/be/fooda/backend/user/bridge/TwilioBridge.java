@@ -22,11 +22,11 @@ public class TwilioBridge {
     @Value("${twilio.bridge.url}")
     private String baseURL;
 
-    public void sendCode(String phone, String code) {
+    public void sendCode(String phone, String code, String password) {
 
         MessageRequest request = new MessageRequest();
 
-        request.setMessage("Fooda validation code: " + code);
+        request.setMessage("Fooda validation code: " + code + " \n After validation is successful, you can this password to login: " + password);
         request.setNumbers(Collections.singletonList(phone));
 
         ResponseEntity<MessageResponse> twilioResponse = restTemplate.postForEntity(baseURL + "/sms/send", request, MessageResponse.class);
@@ -38,11 +38,11 @@ public class TwilioBridge {
         }
     }
 
-    public void sendValidated(String phone, String password) {
+    public void sendValidated(String phone) {
 
         MessageRequest request = new MessageRequest();
 
-        request.setMessage("Fooda user is validated. You can now use password " + password + " to login.");
+        request.setMessage("Fooda user is validated. You can now use your password to login anytime.");
         request.setNumbers(Collections.singletonList(phone));
 
         ResponseEntity<MessageResponse> twilioResponse = restTemplate.postForEntity(baseURL + "/sms/send", request, MessageResponse.class);
