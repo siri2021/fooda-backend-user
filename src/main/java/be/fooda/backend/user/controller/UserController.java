@@ -10,7 +10,7 @@ import be.fooda.backend.user.model.http.HttpSuccessMessages;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.text.RandomStringGenerator;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,7 +47,7 @@ public class UserController {
         int max = 999_999;
         String code = String.valueOf(new Random().nextInt(max) + min);
 
-        String password = generatePassword(12);
+        String password = RandomStringUtils.random(12, true, false);
         twilioBridge.sendCode(phone, code, password);
 
         if (userRepository.existsByLogin(phone)) {
@@ -125,7 +125,7 @@ public class UserController {
         if (foundUserByLogin.getIsActive().equals(Boolean.FALSE))
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_IS_DELETED_CANNOT_BE_VALIDATED);
 
-        if (!foundUserByLogin.getPassword().contentEquals(passwordEncoder.encode(password)))
+        if (!foundUserByLogin.getPassword().equalsIgnoreCase(passwordEncoder.encode(password)))
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(HttpFailureMessages.PASSWORD_IS_NOT_CORRECT);
 
         foundUserByLogin.setIsAuthenticated(Boolean.TRUE);
@@ -209,14 +209,6 @@ public class UserController {
         userRepository.save(foundUserByLogin.get());
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_DELETED);
-    }
-
-
-    //    PRIVATE METHODS FOR CONTROLLER ..
-    private String generatePassword(int length) {
-        return new RandomStringGenerator.Builder()
-                .withinRange(53, 76)
-                .build().generate(length);
     }
 
 }
