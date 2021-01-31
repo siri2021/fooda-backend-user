@@ -38,11 +38,11 @@ public class TwilioBridge {
         }
     }
 
-    public void sendValidated(String phone) {
+    public void sendValidated(String phone, String password) {
 
         MessageRequest request = new MessageRequest();
 
-        request.setMessage("Fooda user is validated. You can now login to your account and start ordering.");
+        request.setMessage("Fooda user is validated. You can now use password " + password + " to login.");
         request.setNumbers(Collections.singletonList(phone));
 
         ResponseEntity<MessageResponse> twilioResponse = restTemplate.postForEntity(baseURL + "/sms/send", request, MessageResponse.class);

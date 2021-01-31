@@ -120,6 +120,12 @@
             <version>1.4.1.Final</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>1.9</version>
+        </dependency>
+
     </dependencies>
 
     <build>

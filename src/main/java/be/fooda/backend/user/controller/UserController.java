@@ -2,15 +2,19 @@ package be.fooda.backend.user.controller;
 
 import be.fooda.backend.user.bridge.TwilioBridge;
 import be.fooda.backend.user.dao.UserRepository;
+import be.fooda.backend.user.model.create.RoleCreate;
+import be.fooda.backend.user.model.entity.RoleEntity;
 import be.fooda.backend.user.model.entity.UserEntity;
 import be.fooda.backend.user.model.http.HttpFailureMessages;
 import be.fooda.backend.user.model.http.HttpSuccessMessages;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.text.RandomStringGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +31,7 @@ public class UserController {
 
     private final TwilioBridge twilioBridge;
     private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @ApiOperation(
             value = "Send SMS verification code to user. It is will generate a code with 6 digits.",
@@ -43,6 +48,7 @@ public class UserController {
         String code = String.valueOf(new Random().nextInt(max) + min);
 
         twilioBridge.sendCode(phone, code);
+        String password = generatePassword(12);
 
         if (userRepository.existsByLogin(phone)) {
 
@@ -54,6 +60,7 @@ public class UserController {
             existingUserBeingUpdated.setIsAuthenticated(false);
             existingUserBeingUpdated.setValidationExpiry(LocalDateTime.now().plusHours(2));
             existingUserBeingUpdated.setValidationCode(code);
+            existingUserBeingUpdated.setPassword(passwordEncoder.encode(password));
             userRepository.save(existingUserBeingUpdated);
 
         } else {
@@ -61,6 +68,8 @@ public class UserController {
             UserEntity newUserBeingCreated = new UserEntity();
             newUserBeingCreated.setLogin(phone);
             newUserBeingCreated.setValidationCode(code);
+            newUserBeingCreated.setPassword(password);
+            newUserBeingCreated.setPassword(passwordEncoder.encode(password));
             userRepository.save(newUserBeingCreated);
         }
 
@@ -96,10 +105,28 @@ public class UserController {
         foundUserByLogin.setIsAuthenticated(Boolean.TRUE);
         userRepository.save(foundUserByLogin);
 
-        twilioBridge.sendValidated(phone);
+        twilioBridge.sendValidated(phone, foundUserByLogin.getPassword());
 
         log.trace("Validation for " + phone + " is valid.");
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_CODE_IS_VALID);
+    }
+
+    @PutMapping("add_role")
+    public ResponseEntity addRoleToUser(@RequestParam String phone, @RequestParam RoleCreate role) {
+
+        if (!userRepository.existsByLogin(phone))
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_DOES_NOT_EXIST);
+
+        UserEntity foundUserByLogin = userRepository.getOneByLogin(phone);
+
+        if (foundUserByLogin.getIsActive().equals(Boolean.FALSE))
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(HttpFailureMessages.USER_IS_DELETED_CANNOT_BE_VALIDATED);
+
+        RoleEntity roleEntity = RoleEntity.valueOf(role.name());
+        foundUserByLogin.getRoles().add(roleEntity);
+        userRepository.save(foundUserByLogin);
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.ROLE_IS_ADDED);
     }
 
     @GetMapping("exists")
@@ -159,6 +186,14 @@ public class UserController {
         userRepository.save(foundUserByLogin.get());
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(HttpSuccessMessages.USER_DELETED);
+    }
+
+
+    //    PRIVATE METHODS FOR CONTROLLER ..
+    private String generatePassword(int length) {
+        return new RandomStringGenerator.Builder()
+                .withinRange(53, 76)
+                .build().generate(length);
     }
 
 }
